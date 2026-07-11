@@ -1,0 +1,48 @@
+name: One-time Color Signal gameplay update
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/one-time-gameplay-update.yml
+
+permissions:
+  contents: write
+
+jobs:
+  publish-tested-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out master
+        uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Reconstruct and verify index.html
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t parts < <(find .tmp -maxdepth 1 -type f -name 'colorsignal-part-*.txt' | sort)
+          if [ "${#parts[@]}" -ne 10 ]; then
+            echo "Expected 10 upload parts, found ${#parts[@]}."
+            exit 1
+          fi
+          cat "${parts[@]}" | tr -d '\n\r' | base64 --decode | gzip --decompress > index.html.new
+          actual_sha="$(sha256sum index.html.new | awk '{print $1}')"
+          expected_sha="9c19a639e3fc5c1fba3bdedd47c198a725ae4d27a258be477b9acee865a81eb0"
+          if [ "$actual_sha" != "$expected_sha" ]; then
+            echo "Checksum mismatch: $actual_sha"
+            exit 1
+          fi
+          mv index.html.new index.html
+          rm -rf .tmp
+
+      - name: Commit directly to master
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A index.html .tmp
+          git commit -m "Improve lobby, clue entry, and color selection"
+          git push origin master
