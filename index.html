@@ -46,6 +46,7 @@ button:disabled{opacity:.42;cursor:not-allowed;filter:saturate(.5)}
 .topbar{height:54px;display:flex;align-items:center;gap:10px;flex:0 0 auto}
 .iconBtn{width:44px;height:44px;border-radius:15px;background:rgba(255,255,255,.09);border:1px solid var(--line);display:grid;place-items:center;box-shadow:0 8px 28px rgba(0,0,0,.18);backdrop-filter:blur(14px)}
 .iconBtn svg{width:21px;height:21px}
+.homeGithub{position:absolute;top:var(--safeTop);right:14px;z-index:4;color:var(--text);text-decoration:none;opacity:.86;transition:transform .18s ease,opacity .18s ease,background .18s ease}.homeGithub:hover{opacity:1;background:rgba(255,255,255,.14)}.homeGithub:active{transform:scale(.93)}
 .topTitle{font-weight:900;font-size:18px;letter-spacing:-.02em;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pill{height:34px;display:flex;align-items:center;gap:7px;padding:0 12px;border-radius:999px;background:rgba(255,255,255,.09);border:1px solid var(--line);font-weight:800;font-size:13px}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--danger);box-shadow:0 0 13px currentColor}.dot.ok{background:var(--good)}
@@ -118,6 +119,9 @@ h1{font-size:clamp(38px,12vw,68px);line-height:.92;letter-spacing:-.07em;margin:
   <div id="toast" class="toast"></div>
 
   <section id="homeScreen" class="screen active">
+    <a class="iconBtn homeGithub" href="https://github.com/Brandon-Valley/ColorSignal" target="_blank" rel="noopener noreferrer" aria-label="Open Color Signal on GitHub" title="View on GitHub">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 .7a11.3 11.3 0 0 0-3.6 22c.6.1.8-.2.8-.5v-2c-3.3.7-4-1.4-4-1.4-.5-1.4-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1.1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.4-5.5-5.7 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.6.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.3-2.8 5.3-5.5 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.6.8.5A11.3 11.3 0 0 0 12 .7Z"/></svg>
+    </a>
     <div class="hero">
       <div class="logoOrb" aria-hidden="true"><span>◈</span></div>
       <div class="heroCopy">
