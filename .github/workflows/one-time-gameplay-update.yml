@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - master
-    paths:
-      - .github/workflows/one-time-gameplay-update.yml
 
 permissions:
   contents: write
