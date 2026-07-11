@@ -1,0 +1,9 @@
+function confirmSetup(){
+  const name=cleanName($('#nameInput').value);if(!name){toast('Enter your name first.');return}
+  preferredName=name;storageSet('colorSignalName',name);document.activeElement?.blur();resetViewport();closeModal($('#setupSheet'));attemptFullscreen();
+  if(setupMode==='create'){initHost(name);setTimeout(()=>{if(state?.players[0])state.players[0].name=name},0)}
+  else{const room=$('#roomInput').value.toUpperCase().replace(/[^A-Z0-9]/g,'');if(room.length!==6){toast('Enter a valid six-character room code.');openModal($('#setupSheet'));return}initJoin(name,room)}
+}
+function shareRoom(){const url=joinUrl(),text=`Join my Color Signal room: ${roomCode}`;if(navigator.share)navigator.share({title:'Color Signal',text,url:url||undefined}).catch(()=>{});else copyText(url?`${text}\n${url}`:text)}
+function joinUrl(){if(!/^https?:$/.test(location.protocol))return'';const u=new URL(location.href);u.searchParams.set('room',roomCode);return u.toString()}
+function copyText(t){navigator.clipboard?.writeText(t).then(()=>toast('Copied!')).catch(()=>{const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();document.execCommand('copy');a.remove();toast('Copied!')})}

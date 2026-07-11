@@ -1,0 +1,21 @@
+    hostConn.on('data',handleClientMessage);hostConn.on('close',()=>{setOnline(false);toast('The room connection ended.')});hostConn.on('error',()=>{setOnline(false);toast('Could not connect to that room.')});
+  });
+  peer.on('error',err=>{if(['peer-unavailable','network','server-error'].includes(err.type)){toast('Room not found or connection failed.');setTimeout(resetToHome,1200)}});
+}
+function handleClientMessage(msg){
+  if(msg?.type==='state'){const previous=state?.phase;state=msg.state;render();if(previous&&previous!==state.phase){if(state.phase==='reveal')successFx();else tone(600,.07,'sine',.04)}}
+  else if(msg?.type==='reject'){toast(msg.reason||'Could not join.');setTimeout(resetToHome,1400)}
+  else if(msg?.type==='toast'){guessSubmitting=false;toast(msg.message);if(state?.status==='playing')renderGame()}
+}
+function handleHostMessage(sender,msg){
+  if(!isHost||!msg)return;const p=playerById(sender);if(!p)return;
+  switch(msg.type){
+    case'clue': if(sender===cueGiver()?.id&&(state.phase==='clue1'||state.phase==='clue2'))acceptClue(msg.text);break;
+    case'guess': acceptGuess(sender,msg.index,msg.which);break;
+    case'clearGuess':clearGuessHost(sender,msg.which);break;
+    case'next':if(sender===state.hostId)advanceRound();break;
+  }
+}
+function acceptClue(raw){
+  const text=String(raw||'').trim().replace(/\s+/g,' '),words=text.split(' ').filter(Boolean),max=state.phase==='clue1'?1:2;
+  if(!text||words.length>max){sendTo(cueGiver().id,{type:'toast',message:`Use ${max===1?'exactly one word':'one or two words'}.`});return}

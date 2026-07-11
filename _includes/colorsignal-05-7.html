@@ -1,0 +1,14 @@
+$('#privacySetting').onclick=()=>toast('Guesses are hidden from other guessers. The Signal Giver can see confirmed markers to guide the next clue.');
+$('#scoreBtn').onclick=()=>{renderScores();openModal($('#scoreModal'))};$('#closeScoreBtn').onclick=()=>closeModal($('#scoreModal'));
+$('#nextRoundBtn').onclick=()=>{if(isHost)advanceRound()};
+$('#gameMenuBtn').onclick=()=>openModal($('#gameMenuModal'));$('#resumeBtn').onclick=()=>closeModal($('#gameMenuModal'));$('#menuRulesBtn').onclick=()=>{closeModal($('#gameMenuModal'));openModal($('#rulesModal'))};$('#leaveGameBtn').onclick=()=>{closeModal($('#gameMenuModal'));confirmLeave(true)};
+$('#confirmNoBtn').onclick=()=>{pendingConfirm=null;closeModal($('#confirmModal'))};$('#confirmYesBtn').onclick=()=>{const f=pendingConfirm;pendingConfirm=null;closeModal($('#confirmModal'));f?.()};
+$$('.sheet,.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m&&!['confirmModal','resultModal'].includes(m.id))closeModal(m)}));
+window.addEventListener('beforeunload',()=>{try{peer?.destroy()}catch{}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&peer&&!peer.destroyed){try{peer.reconnect?.()}catch{}}});
+
+const roomParam=new URLSearchParams(location.search).get('room');if(roomParam){setupMode='join';$('#roomInput').value=roomParam.toUpperCase().slice(0,6);openSetup('join')}
+})();
+</script>
+</body>
+</html>

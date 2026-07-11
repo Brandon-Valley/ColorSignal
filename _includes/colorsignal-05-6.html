@@ -1,0 +1,9 @@
+function showQr(){const wrap=$('#qrWrap');wrap.innerHTML='';const url=joinUrl();const payload=url||`COLOR SIGNAL ROOM: ${roomCode}`;if(typeof QRCode!=='function'){toast('QR library could not load. Share the room code instead.');return}new QRCode(wrap,{text:payload,width:210,height:210,colorDark:'#100b25',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});$('#qrHelp').textContent=url?'Scan to open the game and prefill this room.':'This file is opened locally, so the QR contains the room code. Other players can enter it manually.';openModal($('#qrModal'))}
+
+$('#createBtn').onclick=()=>openSetup('create');$('#joinBtn').onclick=()=>openSetup('join');
+$('#howBtn').onclick=()=>openModal($('#rulesModal'));$('#closeRulesBtn').onclick=()=>closeModal($('#rulesModal'));
+$('#cancelSetupBtn').onclick=()=>closeModal($('#setupSheet'));$('#confirmSetupBtn').onclick=confirmSetup;
+$('#roomInput').addEventListener('input',e=>e.target.value=e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,''));
+$('#leaveLobbyBtn').onclick=()=>confirmLeave(false);$('#copyCodeBtn').onclick=()=>copyText(roomCode);$('#shareRoomBtn').onclick=shareRoom;$('#qrBtn').onclick=showQr;$('#closeQrBtn').onclick=()=>closeModal($('#qrModal'));
+$('#startBtn').onclick=startGame;
+$('#lapsSetting').onclick=()=>{if(!isHost)return;state.settings.laps=state.settings.laps===1?2:1;hostBroadcast()};

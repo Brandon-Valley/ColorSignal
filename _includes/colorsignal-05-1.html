@@ -1,0 +1,16 @@
+  if(words.some(w=>BANNED_COLORS.has(w.toLowerCase().replace(/[^a-z]/g,'')))){sendTo(cueGiver().id,{type:'toast',message:'Basic color names are not allowed.'});return}
+  if(state.usedClues.includes(text.toLowerCase())){sendTo(cueGiver().id,{type:'toast',message:'That clue was already used this game.'});return}
+  state.usedClues.push(text.toLowerCase());
+  if(state.phase==='clue1'){state.clue1=text;state.phase='guess1'}else{state.clue2=text;state.phase='guess2'}
+  hostBroadcast();tone(650,.07,'triangle',.05)
+}
+function sendTo(id,msg){if(id===myId){if(msg.type==='toast'){guessSubmitting=false;toast(msg.message);if(state?.status==='playing')renderGame()}return}const c=connections.get(id);if(c?.open)c.send(msg)}
+function acceptGuess(sender,idx,which){
+  if(!Number.isInteger(idx)||idx<0||idx>=COLS*ROWS)return;
+  if((which===1&&state.phase!=='guess1')||(which===2&&state.phase!=='guess2'))return;
+  if(sender===cueGiver()?.id)return;
+  if(isTaken(idx,which,sender)){sendTo(sender,{type:'toast',message:'That shade is already occupied.'});return}
+  const key=which===1?'guesses1':'guesses2';state[key][sender]=idx;hostBroadcast();
+  if(allGuessersReady(which))setTimeout(()=>{
+    const expected=which===1?'guess1':'guess2';
+    if(state.phase!==expected||!allGuessersReady(which))return;

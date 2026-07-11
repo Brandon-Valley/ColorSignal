@@ -1,0 +1,18 @@
+  state.round++;
+  if(state.round>=state.totalRounds){state.phase='finished';const max=Math.max(...state.players.map(p=>p.score));state.winnerIds=state.players.filter(p=>p.score===max).map(p=>p.id);hostBroadcast();confettiBurst(80);return}
+  state.cueIndex=state.round%state.players.length;setupRound();hostBroadcast();
+}
+
+function selectCell(idx){previewGuessAt(idx,true)}
+function clearPendingGuess(){if(guessSubmitting)return;pendingGuess=null;renderGame()}
+function confirmPendingGuess(){
+  if(!pendingGuess||pendingGuess.phase!==state?.phase||guessSubmitting)return;
+  const which=currentGuessNumber(),idx=pendingGuess.index;
+  if(!which||isTaken(idx,which,myId)){toast('That shade is already occupied. Choose another square.');vibrate([20,30,20]);renderPendingPreview();return}
+  guessSubmitting=true;renderPendingPreview();sendHost({type:'guess',index:idx,which});tone(610,.09,'triangle',.05);vibrate(20)
+}
+function clearMyGuess(which){pendingGuess=null;guessSubmitting=false;sendHost({type:'clearGuess',which})}
+function submitClue(){const input=$('#clueInput');if(!input)return;const text=input.value;input.blur();document.body.classList.remove('keyboardOpen');resetViewport();sendHost({type:'clue',text});setTimeout(resetViewport,80)}
+
+function resetToHome(){
+  try{connections.forEach(c=>c.close());hostConn?.close();peer?.destroy()}catch{}

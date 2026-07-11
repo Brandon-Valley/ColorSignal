@@ -1,1 +1,0 @@
-Trigger the one-time Color Signal gameplay deployment.

@@ -1,0 +1,8 @@
+  peer=null;hostConn=null;connections.clear();isHost=false;myId='';roomCode='';state=null;pendingGuess=null;guessSubmitting=false;boardPointerId=null;connectionState='offline';document.body.classList.remove('keyboardOpen');closeAll();showScreen('home');history.replaceState(null,'',location.href.split('?')[0])
+}
+function closeAll(){$$('.modal.open,.sheet.open').forEach(x=>x.classList.remove('open'))}
+function confirmLeave(fromGame=true){pendingConfirm=()=>resetToHome();$('#confirmTitle').textContent=isHost?'End the room?':'Leave the room?';$('#confirmText').textContent=isHost?'Everyone will be disconnected and the current game will end.':'You will disconnect from the current room.';openModal($('#confirmModal'))}
+
+function confettiBurst(n=50){const colors=['#ff6cae','#ffd166','#67e6b4','#6fb7ff','#b08cff','#fff'];for(let i=0;i<n;i++){const c=document.createElement('i');c.className='confetti';c.style.left=Math.random()*100+'%';c.style.background=colors[i%colors.length];c.style.setProperty('--x',(Math.random()*160-80)+'px');c.style.animationDelay=Math.random()*.6+'s';c.style.animationDuration=(1.8+Math.random()*1.4)+'s';$('#app').appendChild(c);setTimeout(()=>c.remove(),3600)}}
+
+function openSetup(mode){setupMode=mode;$('#setupTitle').textContent=mode==='create'?'Create a Room':'Join a Room';$('#setupBlurb').textContent=mode==='create'?'Pick a name your friends will recognize.':'Enter your name and the six-character room code.';$('#roomField').style.display=mode==='join'?'grid':'none';$('#confirmSetupBtn').textContent=mode==='create'?'Create':'Join';$('#nameInput').value=preferredName;openModal($('#setupSheet'));setTimeout(()=>$('#nameInput').focus(),280)}

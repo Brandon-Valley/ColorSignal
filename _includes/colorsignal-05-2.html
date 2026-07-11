@@ -1,0 +1,17 @@
+    if(which===1){state.phase='clue2';hostBroadcast()}else finishRound();
+  },450);
+}
+function clearGuessHost(sender,which){const key=which===1?'guesses1':'guesses2';if((which===1&&state.phase==='guess1')||(which===2&&state.phase==='guess2')){delete state[key][sender];hostBroadcast()}}
+function finishRound(){
+  state.roundGains={};const cg=cueGiver();state.players.forEach(p=>state.roundGains[p.id]=0);
+  for(const p of state.players){if(p.id===cg.id)continue;for(const key of ['guesses1','guesses2']){const idx=state[key][p.id];if(Number.isInteger(idx)){const d=distance(idx,state.target),pts=d===0?3:d===1?2:d===2?1:0;state.roundGains[p.id]+=pts;if(d<=1)state.roundGains[cg.id]+=1}}}
+  state.players.forEach(p=>p.score+=state.roundGains[p.id]||0);state.phase='reveal';hostBroadcast();confettiBurst(36);successFx();
+}
+function startGame(){
+  if(!canHostStart())return;state.status='playing';state.players.forEach(p=>{p.score=0});state.totalRounds=state.players.length*state.settings.laps;state.round=0;state.cueIndex=0;state.usedClues=[];setupRound();hostBroadcast();
+}
+function setupRound(){state.target=randomTarget();state.clue1='';state.clue2='';state.guesses1={};state.guesses2={};state.roundGains={};state.phase='clue1'}
+function randomTarget(){return Math.floor(Math.random()*COLS*ROWS)}
+function advanceRound(){
+  closeModal($('#resultModal'));
+  if(state.phase==='finished'){state.status='lobby';state.phase='lobby';state.players.forEach(p=>{p.score=0});hostBroadcast();return}

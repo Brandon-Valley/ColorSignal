@@ -1,0 +1,136 @@
+  $(target).innerHTML=ranked.map((p,i)=>`<div class="scoreRow ${p.id===myId?'me':''}"><div class="place">${i+1}</div><div class="avatar" style="width:34px;height:34px;border-radius:12px;background:${p.color}">${iconSvg(p)}</div><div class="playerName">${escapeHtml(p.name)}</div>${showGain?`<div class="gain">+${state.roundGains[p.id]||0}</div>`:''}<div class="scoreNum">${p.score}</div></div>`).join('');
+}
+
+function playerLegend(which){
+  const key=which===1?'guesses1':'guesses2',guessers=state.players.filter(p=>p.id!==cueGiver()?.id);
+  return `<div class="playerLegend">${guessers.map(p=>`<div class="legendChip ${Number.isInteger(state[key]?.[p.id])?'':'pending'}"><span class="legendIcon" style="background:${p.color}">${iconSvg(p)}</span><span>${escapeHtml(p.name)}</span></div>`).join('')}</div>`;
+}
+function syncLocalGuessState(){
+  const which=currentGuessNumber();
+  if(!which){pendingGuess=null;guessSubmitting=false;return}
+  const committed=(which===1?state.guesses1:state.guesses2)?.[myId];
+  if(Number.isInteger(committed)){pendingGuess=null;guessSubmitting=false}
+  else if(pendingGuess?.phase!==state.phase){pendingGuess=null;guessSubmitting=false}
+}
+function renderGame(){
+  if(!state)return;
+  syncLocalGuessState();
+  const cg=cueGiver(),mine=cg?.id===myId;
+  $('#roundLabel').textContent=`${Math.min(state.round+1,state.totalRounds)} / ${state.totalRounds}`;
+  $('#cueGiverLabel').textContent=cg?`${cg.name} is the Signal Giver`:'';
+  const clues=[state.clue1,state.clue2].filter(Boolean).join('  -  ');
+  $('#currentClue').textContent=clues||'Waiting for a signal...';$('#currentClue').classList.toggle('empty',!clues);
+  const phaseNames={clue1:mine?'Your one-word signal':'Signal Giver is thinking',guess1:mine?'Watch their first guesses':'Choose your first shade',clue2:mine?'Add a two-word signal':'Signal Giver is refining',guess2:mine?'Watch their second guesses':'Choose your second shade',reveal:'Shade revealed',finished:'Game complete'};
+  $('#phaseLabel').textContent=phaseNames[state.phase]||'Get ready';
+  renderBoard();
+  const dock=$('#gameDock');
+  if(state.phase==='clue1'||state.phase==='clue2'){
+    if(mine){
+      const max=state.phase==='clue1'?1:2,xy=indexXY(state.target),legend=state.phase==='clue2'?playerLegend(1):'';
+      dock.innerHTML=`<div class="targetCard"><div class="targetSwatch" style="background:${colorAt(xy.x,xy.y)}"></div><div class="targetInfo"><small>Your secret shade - ${cellLabel(state.target)}</small><b>Target marked on the grid</b><span>${state.phase==='clue2'?'Use the player icons to read their first guesses.':'Only you can see the target marker.'}</span></div></div>${legend}<div class="clueEntry"><input id="clueInput" maxlength="28" autocomplete="off" autocapitalize="none" enterkeyhint="send" placeholder="${max===1?'One word':'Up to two words'}"><button id="sendClueBtn">Send</button></div><div class="statusLine">${max===1?'No basic color names. Make it vivid.':'You may use one or two new words.'}</div>`;
+      $('#sendClueBtn').onclick=submitClue;prepareClueInput($('#clueInput'));
+    }else dock.innerHTML=`<div class="statusLine">${escapeHtml(cg?.name||'The Signal Giver')} is choosing a clue <span class="waitingDots"><i></i><i></i><i></i></span></div>`;
+  } else if(state.phase==='guess1'||state.phase==='guess2'){
+    const which=currentGuessNumber(),myGuess=currentCommittedGuess();
+    if(mine){
+      dock.innerHTML=`<div class="watchHeader"><b>Confirmed guesses</b><span>${waitingText(which)}</span></div>${playerLegend(which)}<div class="statusLine">Player icons on the grid match the names above. Your target stays marked.</div>`;
+    }else if(Number.isInteger(myGuess)){
+      const xy=indexXY(myGuess);
+      dock.innerHTML=`<div class="targetCard"><div class="targetSwatch" style="background:${colorAt(xy.x,xy.y)}"></div><div class="targetInfo"><small>Guess ${which} confirmed - ${cellLabel(myGuess)}</small><b>Your choice is locked in</b><span>Waiting for the remaining players.</span></div></div><button id="changeGuessBtn" class="secondaryBtn">Change My Guess</button>`;
+      $('#changeGuessBtn').onclick=()=>clearMyGuess(which);
+    }else{
+      const candidate=pendingGuess?.phase===state.phase?pendingGuess.index:null,xy=Number.isInteger(candidate)?indexXY(candidate):null;
+      dock.innerHTML=`<div class="guessComposer"><div id="guessSwatch" class="guessSwatch"${xy?` style="background:${colorAt(xy.x,xy.y)}"`:''}>${xy?'':iconSvg(me())}</div><div class="guessCopy"><small>Guess ${which} preview</small><b id="guessPreviewTitle">${xy?`Shade ${cellLabel(candidate)}`:'Touch the color grid'}</b><span id="guessPreviewDetail">${xy?'Keep dragging to fine-tune, then confirm.':'Press and drag across the grid to preview colors here.'}</span></div></div><div class="guessActions"><button id="clearPreviewBtn" class="secondaryBtn" ${xy?'':'disabled'}>Clear</button><button id="confirmGuessBtn" class="primaryBtn" ${xy?'':'disabled'}>${guessSubmitting?'Confirming...':'Confirm Guess'}</button></div>`;
+      $('#clearPreviewBtn').onclick=clearPendingGuess;$('#confirmGuessBtn').onclick=confirmPendingGuess;renderPendingPreview();
+    }
+  } else if(state.phase==='reveal'){
+    dock.innerHTML=`<button id="showResultsBtn" class="primaryBtn">View Round Results</button><div class="statusLine">The target and scoring zones are now visible.</div>`;$('#showResultsBtn').onclick=()=>openModal($('#resultModal'));
+  } else if(state.phase==='finished'){
+    dock.innerHTML=`<button id="showFinalBtn" class="primaryBtn">View Final Scores</button><div class="statusLine">The spectrum has spoken.</div>`;$('#showFinalBtn').onclick=()=>openModal($('#resultModal'));
+  }
+}
+function waitingText(which){const key=which===1?'guesses1':'guesses2',count=Object.keys(state[key]).length,total=state.players.length-1;return `${count} of ${total} confirmed`}
+function prepareClueInput(input){
+  if(!input)return;
+  input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();submitClue()}});
+  input.addEventListener('focus',()=>{document.body.classList.add('keyboardOpen');updateVisualViewport();setTimeout(resetViewport,60)});
+  input.addEventListener('blur',()=>setTimeout(()=>{document.body.classList.remove('keyboardOpen');resetViewport()},120));
+}
+function updateVisualViewport(){const vv=window.visualViewport;document.documentElement.style.setProperty('--vvTop',`${vv?.offsetTop||0}px`);document.documentElement.style.setProperty('--vvHeight',`${vv?.height||window.innerHeight}px`)}
+window.visualViewport?.addEventListener('resize',updateVisualViewport);window.visualViewport?.addEventListener('scroll',updateVisualViewport);updateVisualViewport();
+
+function renderResult(){
+  if(!state||!Number.isInteger(state.target))return;const xy=indexXY(state.target),cg=cueGiver(),final=state.phase==='finished';
+  const eyebrow=$('#resultModal .eyebrow');
+  if(final){
+    const winners=state.players.filter(p=>state.winnerIds.includes(p.id));
+    eyebrow.textContent=winners.length>1?'Spectrum champions':'Spectrum champion';
+    $('#resultSwatch').style.background=winners.length===1?winners[0].color:'conic-gradient(#ff6cae,#ffd166,#67e6b4,#6fb7ff,#b08cff,#ff6cae)';
+    $('#resultClues').textContent=winners.map(p=>p.name).join(' & ');
+    $('#resultMeta').textContent=`Winning score: ${Math.max(...state.players.map(p=>p.score))}`;
+  }else{
+    eyebrow.textContent='The secret shade was';
+    $('#resultSwatch').style.background=colorAt(xy.x,xy.y);
+    $('#resultClues').textContent=[state.clue1,state.clue2].filter(Boolean).map(x=>`“${x}”`).join('  →  ');
+    $('#resultMeta').textContent=`Signal by ${cg?.name||''} · Grid ${String.fromCharCode(65+xy.x)}${xy.y+1}`;
+  }
+  renderScores('#roundScoreList',!final);
+  $('#nextRoundBtn').textContent=final?'Play Again':'Next Round';$('#nextRoundBtn').style.display=isHost?'flex':'none';
+  $('#resultModal .waitNote')?.remove();
+  if(!isHost){const wait=document.createElement('div');wait.className='tinyNote waitNote';wait.textContent=final?'Waiting for the host to start another game.':'Waiting for the host to continue.';$('#roundScoreList').after(wait)}
+}
+
+function render(){
+  if(!state)return;
+  if(state.status==='lobby'){showScreen('lobby');renderLobby()}
+  else{showScreen('game');renderGame();renderScores();renderResult();if(state.phase==='reveal'||state.phase==='finished')openModal($('#resultModal'));else closeModal($('#resultModal'))}
+}
+
+function hostBroadcast(){if(!isHost)return;connections.forEach(c=>{if(c.open)try{c.send({type:'state',state})}catch{}});render()}
+function sendHost(msg){if(isHost){handleHostMessage(myId,msg);return}if(hostConn?.open)hostConn.send(msg);else toast('Connection lost. Try rejoining.')}
+function setOnline(v){connectionState=v?'online':'offline';renderLobby()}
+
+function initHost(name,retry=0){
+  if(typeof Peer!=='function'){toast('Multiplayer library did not load. Check your internet and reopen the file.');return}
+  isHost=true;roomCode=code();myId=uid();state=defaultState();state.room=roomCode;state.hostId=myId;state.players=[{id:myId,name,color:PLAYER_COLORS[0],icon:0,score:0,joined:Date.now()}];
+  const peerId='color-signal-'+roomCode.toLowerCase();peer=new Peer(peerId,{debug:0});
+  peer.on('open',()=>{setOnline(true);showScreen('lobby');render();history.replaceState(null,'',location.href.split('?')[0]);attemptFullscreen()});
+  peer.on('connection',conn=>{
+    conn.on('open',()=>{});conn.on('data',msg=>handleIncomingConnection(conn,msg));conn.on('close',()=>removeDisconnected(conn));conn.on('error',()=>removeDisconnected(conn));
+  });
+  peer.on('error',err=>{if(err.type==='unavailable-id'&&retry<4){peer.destroy();setTimeout(()=>initHost(name,retry+1),120);return}toast('Could not create the room. Check your internet.');resetToHome()});
+  window._pendingHostName=name;
+}
+function handleIncomingConnection(conn,msg){
+  if(msg?.type==='join'){
+    if(state.status!=='lobby'){conn.send({type:'reject',reason:'This game has already started.'});setTimeout(()=>conn.close(),400);return}
+    if(state.players.length>=MAX_PLAYERS){conn.send({type:'reject',reason:'This room is full.'});setTimeout(()=>conn.close(),400);return}
+    if(state.players.some(p=>p.id===msg.playerId)){connections.set(msg.playerId,conn);conn.send({type:'state',state});return}
+    const name=cleanName(msg.name)||'Player';
+    state.players.push({id:msg.playerId,name,color:PLAYER_COLORS[state.players.length%PLAYER_COLORS.length],icon:state.players.length%PLAYER_ICON_PATHS.length,score:0,joined:Date.now()});
+    connections.set(msg.playerId,conn);conn.playerId=msg.playerId;hostBroadcast();tone(700,.11,'triangle',.05);toast(`${name} joined the room`);
+  } else if(conn.playerId)handleHostMessage(conn.playerId,msg);
+}
+function removeDisconnected(conn){
+  if(!isHost||!conn.playerId)return;const p=playerById(conn.playerId);connections.delete(conn.playerId);if(!p)return;
+  if(state.status==='lobby'){state.players=state.players.filter(x=>x.id!==conn.playerId);hostBroadcast();toast(`${p.name} left`);return}
+  const idx=state.players.findIndex(x=>x.id===conn.playerId),wasCue=idx===state.cueIndex;
+  state.players.splice(idx,1);delete state.guesses1[conn.playerId];delete state.guesses2[conn.playerId];delete state.roundGains[conn.playerId];
+  state.totalRounds=Math.max(state.round+1,state.totalRounds-state.settings.laps);
+  if(state.players.length<=1){state.phase='finished';state.winnerIds=state.players.map(x=>x.id);hostBroadcast();toast(`${p.name} disconnected`);return}
+  if(idx<state.cueIndex)state.cueIndex--;state.cueIndex=((state.cueIndex%state.players.length)+state.players.length)%state.players.length;
+  if(wasCue){setupRound();toast(`${p.name} disconnected. The round restarted.`)}
+  else{
+    toast(`${p.name} disconnected`);
+    if(state.phase==='guess1'&&allGuessersReady(1))state.phase='clue2';
+    else if(state.phase==='guess2'&&allGuessersReady(2)){finishRound();return}
+  }
+  hostBroadcast();
+}
+function initJoin(name,room){
+  if(typeof Peer!=='function'){toast('Multiplayer library did not load. Check your internet and reopen the file.');return}
+  isHost=false;roomCode=room.toUpperCase();myId=uid();state=defaultState();state.room=roomCode;
+  peer=new Peer(undefined,{debug:0});
+  peer.on('open',()=>{
+    hostConn=peer.connect('color-signal-'+roomCode.toLowerCase(),{reliable:true});
+    hostConn.on('open',()=>{setOnline(true);hostConn.send({type:'join',playerId:myId,name});attemptFullscreen()});
